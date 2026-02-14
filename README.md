@@ -1,6 +1,10 @@
 # zork-with-combat
 A zork-style text adventure videogame with combat.
 
-## IMPORTANT NOTE
-This program is currently only compatable with macOS aarch64 (arm64).
-I intend to add Windows and macOS x86 and x86_64 support shortly.
+## Current Development Status
+Under development
+
+## Compatability
+This program should work with all platforms.
+
+
