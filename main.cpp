@@ -1,40 +1,31 @@
 #include <any>
-#include <iostream>
-#include <random>
-#include <vector>
-#include <string>
-#include <ncurses.h>
-#include <list>
-#include <stdexcept>
-#include <cstdint>
-#include <fstream>
-#include <filesystem>
-#include <cstring>
-#ifndef _WIN32
-#include <sys/mman.h>
-#endif
-#include <cstddef>
-#include <zlib.h>
-#include <thread>
-#include <mutex>
-#include <functional>
-#include <utility>
-#include <unordered_map>
-#include <optional>
-#include <stop_token>
 #include <cassert>
+#include <cmath>
+#include <concepts>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include "DatSave.hpp"
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iomanip>
+#include <iostream>
+#include <list>
+#include <mutex>
+#include <ncurses.h>
+#include <optional>
+#include <random>
+#include <stdexcept>
+#include <stop_token>
+#include <string>
 #include "thrdHandle.hpp"
+#include <thread>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
-/*                                                                 *
- *                    COPYRIGHT NOTICE                             *
- *               Copyright 2026 Maxwell Doose                      *
- *                   All rights reserved                           *
- *           Use of this source code without prior                 *
- *    authorization is STRICTLY prohibited by US Copyright Law.    *
- *  When applicable, certain exceptions may be made for Fair Use.  *
- *                                                                 *
-*/
+/* Copyright 2025-2026 Maxwell Doose */
 
 #define SECTION_CHKSUM 0x0000 // Offsets for the save function
 #define SECTION_CHAR_DAT 0x0004
@@ -45,12 +36,16 @@
 
 typedef std::vector<uint8_t> levVec; // Easier to type, fairly readable
 typedef std::string str; // See above comment
+typedef std::string string; // See above comment
 typedef unsigned char hex;  // See above comment
 typedef std::array<unsigned char, 4> hex4ByteWord;   // Made due to a lack of a 4 byte wide std::byte data type
 typedef std::array<unsigned char, 8> hex8ByteWord;  // Made due to a lack of an 8 byte wide std::byte data type
 typedef std::array<unsigned char, 10> hex10ByteWord; // Standard 10 byte type for headers, data, etc
 typedef std::lock_guard<std::mutex> autoLock;
 typedef int windowID;
+
+template<typename T>
+concept UnsignedByteOrWord = std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> || std::is_same_v<T, double_t>;
 
 hex8ByteWord saveBuffer;
 
@@ -75,43 +70,21 @@ class room_attributes
         }
 };
 
-const levVec mc_stats[] // Level stats for main character
-{
-	{12, 3, 3}, // level 1
-	{15, 4, 3}, // level 2
-	{17, 5, 4}, // level 3
-	{20, 5, 5}, // level 4
-	{22, 6, 6} // level 5
-};
-const levVec basic_enemy_stats[]  // Level stats for basic enemy
-{
-	{10, 3, 2},
-	{13, 3, 2},
-	{15, 4, 3},
-	{18, 4, 3},
-	{19, 4, 4}
-};
-
-int width;
-int height;
+uint16_t width;
+uint16_t height;
 int menuPress;
 
 str gameName = "The Max D. Game";
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-int get_seed()
+uint64_t getRand()
 {
     uint64_t randNum = 0;
-    asm volatile ("mrs x0,S3_3_C2_C4_0" : "=r"(randNum));
-    /* Obtains number from built in RNG register,
-    moves it to general purpose register 1, moves to randNum */
+    std::random_device rd;
+    std::mt19937_64 gen(rd());
+    std::uniform_int_distribution<> distrib(1, 100);
+    randNum = distrib(gen);
     return randNum;
 }
-#ifdef __cplusplus
-}
-#endif
 
 void combat_loop()  // TODO: Implement and optimize
 {
@@ -121,63 +94,82 @@ void combat_loop()  // TODO: Implement and optimize
 class stats
 {
     private:
-        uint8_t health;
-        uint8_t attack;
-        uint8_t speed;
-        uint8_t battle_health;
-        uint8_t battle_attack;
-        uint8_t battle_speed;
-        uint8_t level;
+        double_t health;
+        double_t attack;
+        double_t speed;
+        double_t battleHealth;
+        double_t battleAttack;
+        double_t battleSpeed;
+        double_t xp;
         std::list<str> inventory;
-        str char_name;
-    public:
-        stats(str new_char_name, uint8_t level_offset) // Initialization of an object
+        str charName;
+
+        template<UnsignedByteOrWord T>
+        double_t xpSigmoidAlgo (T var, double x, double L=100, double k = 2, double x0 = 50)
         {
-            char_name = new_char_name;               // REMINDER: Do not touch!
-            level = 1 + level_offset;
-            level_up(level);
+            double_t f_x = L / (1.0 + std::exp(-k * (x - x0)));
+            double_t f_0 = L / (1.0 + std::exp(k * x0));
+            double_t retVal = f_x - f_0;
+            var = retVal;
+            return retVal;
+        };
+    public:
+        stats(str newCharName, double_t x, double_t L=100, double_t k = 2, double_t x0 = 50, double_t startingXP = 10) // Currently undergoing reimplementation
+        {
+            this->charName = newCharName;
+            this->xp = startingXP;
+            for (uint8_t i = 0; i < 3; i++)
+            {
+                switch(i)
+                {
+                    case 0:
+                        this->battleHealth = this->xpSigmoidAlgo(this->health, this->xp);
+                        break;
+                    case 1:
+                        this->battleAttack = this->xpSigmoidAlgo(this->attack, this->xp);
+                        break;
+                    case 2:
+                        this->battleSpeed = this->xpSigmoidAlgo(this->speed, this->xp);
+                        break;
+                }
+            }
         }
 
-        int update_and_get_health(int8_t change)
+        uint16_t healthGetterSetter(int8_t change)
         {
             health += change;
             return health;
         }
-        int update_and_get_speed(int8_t change)
+        uint16_t speedGetterSetter(int8_t change)
         {
             speed += change;
             return speed;
         }
-        int update_and_get_attack(int8_t change)
+        uint16_t attackGetterSetter(int8_t change)
         {
             attack += change;
             return attack;
         }
 
-        int update_and_get_battle_health(int8_t change)
+        uint16_t battleHealthGetterSetter(int8_t change)
         {
-            battle_health += change;
-            return battle_health;
+            battleHealth += change;
+            return battleHealth;
         }
-        int update_and_get_battle_speed(int8_t change)
+        uint16_t battleSpeedGetterSetter(int8_t change)
         {
-            battle_speed += change;
-            return battle_speed;
+            battleSpeed += change;
+            return battleSpeed;
         }
-        int update_and_get_battle_attack(int8_t change)
+        uint16_t battleAttackGetterSetter(int8_t change)
         {
-            battle_attack += change;
-            return battle_attack;
+            battleAttack += change;
+            return battleAttack;
         }
 
-        void level_up(uint8_t new_lvl)
+        void addXP(uint16_t amntXP)
         {
-            health = mc_stats[new_lvl][1];
-            attack = mc_stats[new_lvl][2];
-            speed = mc_stats[new_lvl][3];
-            battle_health = mc_stats[new_lvl][1];
-            battle_attack = mc_stats[new_lvl][2];
-            battle_speed = mc_stats[new_lvl][3];
+
         }
 };
 
@@ -195,9 +187,11 @@ class ncThreadInterface // WARNING: Not fully implemented yet
         bool initializedWinFlag = false;
         bool initializedThrdFlag = false;
 
+        friend class ncSession;
+
         void ncThrdIntegrityCheck()
         {
-            if (std::this_thread::get_id() != thisThrdId) std::terminate(); else return;
+            if (std::this_thread::get_id() != this->thisThrdId) std::terminate(); else return;
         }
 
     public:
@@ -208,7 +202,7 @@ class ncThreadInterface // WARNING: Not fully implemented yet
             return menuKeys;
         }
 
-        void winInit(uint8_t lines = 0, uint8_t cols = 0, uint8_t startY = 0, uint8_t startX = 0) {
+        void winInit(int lines = LINES, int cols = COLS, int startY = 0, int startX = 0) {
             ncThrdIntegrityCheck();
             if (initializedWinFlag) std::terminate();
             initializedWinFlag = true;
@@ -239,6 +233,7 @@ class ncThreadInterface // WARNING: Not fully implemented yet
                 uint8_t len = gameName.length();
 
                 werase(currentWindow);
+                wresize(currentWindow, LINES, COLS);
                 wattron(currentWindow, COLOR_PAIR(1));
                 wmove(currentWindow, 0,0); whline(currentWindow, ' ', COLS);
                 mvwaddstr(currentWindow, 0, (COLS-len)/2, gameName.c_str());
@@ -266,6 +261,11 @@ class ncThreadInterface // WARNING: Not fully implemented yet
             return;
         }
 
+        WINDOW* winGetter() { // Deprecated
+            ncThrdIntegrityCheck();
+            return currentWindow;
+        }
+
         ~ncThreadInterface() {
             if (this->initializedWinFlag) { delwin(currentWindow); }
         }
@@ -274,56 +274,78 @@ class ncThreadInterface // WARNING: Not fully implemented yet
 class ncSession : public threadHandler
 {
     private:
-        friend bool ncStopFunc(std::shared_ptr<ncSession> obj);
+
+        ncThreadInterface lineRenderer;
 
         std::mutex thrdInitLock;
-        std::jthread cursesThread;
+
+        str buffer = "";
+        uint16_t currentChar;
 
         bool initializedFlag = false;
 
-        ncThreadInterface lineRenderer;
+        std::jthread thisThrdTask;
+
     public:
-        ~ncSession()
-        {
-            if (initializedFlag) { endwin(); }
+
+        ~ncSession() = default;
+
+        void start() {
+            thisThrdTask = std::jthread(
+                [this](std::stop_token st) {
+                    cursesInit(st);
+            });
+            return;
         }
 
-        void cursesInit()
+        void cursesInit(std::stop_token st)
         {
-            autoLock lock(thrdInitLock);
-
             if (initializedFlag) std::terminate();
 
-            thisThrdId = std::this_thread::get_id();
+            thisThrdId = std::this_thread::get_id(); // Lock down thread functions
             initializedFlag = true;
 
             initscr();
             start_color();
             init_pair(1, COLOR_BLACK, COLOR_WHITE);
-            {
-                lineRenderer.attachThreadId(std::this_thread::get_id());
-                lineRenderer.winInit();
-                lineRenderer.enableKeyStrobing();
 
-                do
+            lineRenderer.attachThreadId(std::this_thread::get_id());
+            lineRenderer.winInit();
+            lineRenderer.enableKeyStrobing();
+            lineRenderer.renderLines(true);
+
+            auto inputBuffer = [this]()
+            mutable {
+                if (!this->initializedFlag) try {
+                        throw std::bad_function_call();
+                    } catch(std::bad_function_call e) {
+                        datSave::createFile("errlog.txt", false);
+                        std::terminate(); // This should NEVER happen
+                    }
+                currentChar = wgetch(lineRenderer.currentWindow);
+                const hex procChar = static_cast<hex>(currentChar);
+                if (currentChar == KEY_RESIZE) // Compare to constant 410 for SIGRESIZE
                 {
-                    lineRenderer.renderLines();
+                    wprintw(lineRenderer.currentWindow, "%i\n", currentChar);
+                    lineRenderer.renderLines(true); // If so, rerender
+                    return;
+                } else if ((0x00 <= procChar) || (procChar >= 0x7F)) return;
+                else { wprintw(lineRenderer.currentWindow, "%i %i\n", currentChar, procChar);
+                    buffer.append(1, static_cast<char>(procChar));
+                    return;
                 }
-                while (this->thrdFlag != 0b10000000);
+            };
+
+            while (!st.stop_requested())
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                inputBuffer();
             }
+            endwin();
+
             return;
         }
 };
-
-bool ncStopFunc(std::shared_ptr<ncSession> obj)
-{
-    if (obj->cursesThread.joinable())
-    {
-        obj->cursesThread.join();
-        return true;
-    } else return false;
-}
-
 
 int main()
 {
@@ -336,17 +358,13 @@ int main()
     }
 
     {
-        auto tCurse = std::make_shared<ncSession>();
-        tCurse->start([tCurse] {
-            tCurse->cursesInit();
-        });
+        std::stop_token st;
+        auto tCurse = std::make_unique<ncSession>();
+        tCurse->start();
         std::this_thread::sleep_for(std::chrono::seconds(15));
         tCurse->updThrdFlag(thrdAttribBitmask::TERM);
-        uint8_t i = 0;
-        while (true)
-        {
-            if (ncStopFunc(tCurse) == true) break;
-        }
+        uint32_t i = 0;
     }
+
     return 0;
 }

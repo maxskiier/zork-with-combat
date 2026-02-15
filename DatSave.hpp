@@ -12,15 +12,7 @@
 #include <string>
 #include <ncurses.h>
 
-/*                                                                 *
- *                    COPYRIGHT NOTICE                             *
- *               Copyright 2026 Maxwell Doose                      *
- *                   All rights reserved                           *
- *           Use of this source code without prior                 *
- *    authorization is STRICTLY prohibited by US Copyright Law.    *
- *  When applicable, certain exceptions may be made for Fair Use.  *
- *                                                                 *
-*/
+/* Copyright 2025-2026 Maxwell Doose */
 
 namespace fsStream {
     using std::ofstream;
@@ -36,7 +28,7 @@ typedef std::array<unsigned char, 8> hex8ByteWord;
 typedef std::string str;
 typedef std::array<unsigned char, 10> hex10ByteWord;
 
-class DatSave
+class datSave
 {
     private:
         inline static str saveFile;
@@ -46,8 +38,10 @@ class DatSave
         inline static constexpr std::size_t pageSize = 8;
         inline static constexpr std::size_t headerSize = 10;
         inline static fsOps::path savePath;
+        inline static fsOps::path otherFile;
+
     public:
-        static int createFile(const char* fileName = "zkcmt.dat")
+        static int createFile(const char* fileName = "zkcmt.dat", bool dirBypass = false)
         {
             fsStream::ifstream inFile(fileName);
             if (fsOps::exists(fileName))
@@ -55,25 +49,34 @@ class DatSave
                 return 1;
             }
             inFile.close();
-            saveFile = fileName;
-            try
+            if (!dirBypass)
             {
-                fsOps::create_directories("./Saves");
-                savePath = fsOps::path("Saves") / saveFile;
+                try
                 {
-                    std::ofstream out(savePath, std::ios::binary);
+                    otherFile = fileName;
+                    {
+                        std::ofstream out(fileName, std::ios::binary);
+                    }
+                    fsOps::resize_file(fileName, 8192, ec);
+                } catch (fsOps::filesystem_error* e) {
+                    return 2;
                 }
-                fsOps::resize_file(savePath, 8192, ec);
-            } catch(const fsOps::filesystem_error* e) {
-                attron(COLOR_PAIR(1));
-                printw("Filesystem error: ");
-                attroff(COLOR_PAIR(1));
-                printw("%s\nPress any key to continue.", e);
-                refresh();
-                getch();
-                return 2;
+                return 0;
+            } else {
+                saveFile = fileName;
+                try
+                {
+                    fsOps::create_directories("./Saves");
+                    savePath = fsOps::path("Saves") / saveFile;
+                    {
+                        std::ofstream out(savePath, std::ios::binary);
+                    }
+                    fsOps::resize_file(savePath, 8192, ec);
+                } catch(const fsOps::filesystem_error* e) {
+                    return 2;
+                }
+                return 0;
             }
-            return 0;
         }
 
         static hex8ByteWord dataParser(int sectionOffset)

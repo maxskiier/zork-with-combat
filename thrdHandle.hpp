@@ -4,6 +4,7 @@
 #define THRDHANDLE_HPP
 #endif // THRDHANDLE_HPP
 
+#include <iostream>
 #include <ncurses.h>
 #include <stdexcept>
 #include <cstdint>
@@ -21,15 +22,7 @@
 #include <stop_token>
 #include <cassert>
 
-/*                                                                 *
- *                    COPYRIGHT NOTICE                             *
- *               Copyright 2026 Maxwell Doose                      *
- *                   All rights reserved                           *
- *           Use of this source code without prior                 *
- *    authorization is STRICTLY prohibited by US Copyright Law.    *
- *  When applicable, certain exceptions may be made for Fair Use.  *
- *                                                                 *
-*/
+/* Copyright 2025-2026 Maxwell Doose */
 
 enum class thrdAttribBitmask : uint8_t { MAIN, LOGIC, NCURSES, SAVER, MUTEX, SIGHANDLER, PLACEHOLDER, TERM };
 
@@ -42,7 +35,7 @@ typedef std::array<unsigned char, 10> hex10ByteWord; // Standard 10 byte type fo
 typedef std::lock_guard<std::mutex> autoLock;
 typedef int windowID;
 
-class threadHandler
+class  threadHandler
 {
 private:
     // friend void thrdInit(threadHandler* classObj);
@@ -69,8 +62,12 @@ protected:
 
 public:
 
+    ~threadHandler() = default;
+
     template<typename func, typename ...args>
-    void start(func&& function, args&&... arguments) // Generic thread starter
+    [[deprecated("Use specific thread starters for each class")]]void start(func&& function, args&&... arguments)
+    /* Destructor f**king hates it,
+    almost always segfaults */
     {
         thisThrdTask = std::jthread(
             std::forward<func>(function),
@@ -129,7 +126,7 @@ public:
             thrdFlag = 0b10000000;
             break;
         default:
-            throw std::invalid_argument("Corrupted thrdAttribBitmask");
+            throw std::invalid_argument("Corrupted bitmask");
         }
         thrdFlag = thrdFlag | mutexStatus;
 
