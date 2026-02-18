@@ -2,7 +2,10 @@
 A zork-style text adventure videogame with combat.
 
 ## Current Development Status
-**Under development**  
+### **Under development**  
+###### *Alpha*  
+###### *Beta*  
+###### *Release*  
 If you would like to help, or just suggest ideas, please feel free to contact me.
 
 ## How to build
@@ -13,8 +16,8 @@ Run `g++ -lncurses -std=c++23 main.cpp` in the directory to build.
 ### Known compatable with:
 * macOS arm64
 * Linux x86/x86_64
-____
 ### Should be compatable with:
 * Windows x86/x86_64
 * Windows arm64
-* Other platforms (BSD, etc)
+____  
+In case of incompatability with any of these platforms, please create an issue and I'll look into it. 
