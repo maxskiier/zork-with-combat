@@ -34,8 +34,7 @@
 #define SECTION_STATS_ENEMIES_DAT 0x0300
 #define SECTION_DUNGEON_DAT 0x0B00
 
-typedef std::vector<uint8_t> levVec; // Easier to type, fairly readable
-typedef std::string str; // See above comment
+typedef std::string str; // Easier to type, readable, etc
 typedef std::string string; // See above comment
 typedef unsigned char hex;  // See above comment
 typedef std::array<unsigned char, 4> hex4ByteWord;   // Made due to a lack of a 4 byte wide std::byte data type
@@ -76,7 +75,7 @@ int menuPress;
 
 str gameName = "The Max D. Game";
 
-const levVec mcStats[] // Level stats for main character
+const std::array<uint8_t,3> mcStats[] // Level stats for main character
 {
     {12, 3, 3}, // level 1
     {15, 4, 3}, // level 2
@@ -85,7 +84,7 @@ const levVec mcStats[] // Level stats for main character
     {22, 6, 6} // level 5
 };
 
-const levVec basicEnemyStats[]  // Level stats for basic enemy
+const std::array<uint8_t,3> basicEnemyStats[]  // Level stats for basic enemy
 {
     {10, 3, 2},
     {13, 3, 2},
@@ -279,7 +278,7 @@ class ncSession : public threadHandler
         std::mutex thrdInitLock;
 
         str buffer = "";
-        uint16_t currentChar;
+        char16_t currentChar;
 
         bool initializedFlag = false;
 
@@ -344,6 +343,11 @@ class ncSession : public threadHandler
 
             return;
         }
+
+	char16_t reportCharGetter()
+	{
+		return currentChar;
+	}
 };
 
 int main()
@@ -357,12 +361,12 @@ int main()
     }
 
     {
-        std::stop_token st;
         auto tCurse = std::make_unique<ncSession>();
         tCurse->start();
-        std::this_thread::sleep_for(std::chrono::seconds(15));
-        tCurse->updThrdFlag(thrdAttribBitmask::TERM);
-        uint32_t i = 0;
+        while (static_cast<uint16_t>(tCurse->reportCharGetter()) != 0x1B)
+	    {
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	    }
     }
 
     return 0;

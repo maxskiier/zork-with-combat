@@ -33,8 +33,6 @@ typedef int windowID;
 
 class  threadHandler
 {
-private:
-    // friend void thrdInit(threadHandler* classObj);
 protected:
 
     bool initializedFlag = false;
@@ -63,7 +61,7 @@ public:
     template<typename func, typename ...args>
     [[deprecated("Use specific thread starters for each class")]]void start(func&& function, args&&... arguments)
     /* Destructor f**king hates it,
-    almost always segfaults */
+    almost always segfaults, so in short, DO NOT USE. */
     {
         thisThrdTask = std::jthread(
             std::forward<func>(function),
