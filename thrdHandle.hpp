@@ -2,18 +2,14 @@
 
 #ifndef THRDHANDLE_HPP
 #define THRDHANDLE_HPP
-#endif // THRDHANDLE_HPP
+
 
 #include <iostream>
 #include <ncurses.h>
 #include <stdexcept>
 #include <cstdint>
 #include <cstring>
-#ifndef _WIN32
-#include <sys/mman.h>
-#endif
 #include <cstddef>
-#include <zlib.h>
 #include <thread>
 #include <mutex>
 #include <functional>
@@ -133,3 +129,4 @@ public:
         return;
     }
 };
+#endif // THRDHANDLE_HPP

@@ -76,6 +76,24 @@ int menuPress;
 
 str gameName = "The Max D. Game";
 
+const levVec mcStats[] // Level stats for main character
+{
+    {12, 3, 3}, // level 1
+    {15, 4, 3}, // level 2
+    {17, 5, 4}, // level 3
+    {20, 5, 5}, // level 4
+    {22, 6, 6} // level 5
+};
+
+const levVec basicEnemyStats[]  // Level stats for basic enemy
+{
+    {10, 3, 2},
+    {13, 3, 2},
+    {15, 4, 3},
+    {18, 4, 3},
+    {19, 4, 4}
+};
+
 uint64_t getRand()
 {
     uint64_t randNum = 0;
@@ -93,84 +111,65 @@ void combat_loop()  // TODO: Implement and optimize
 
 class stats
 {
-    private:
-        double_t health;
-        double_t attack;
-        double_t speed;
-        double_t battleHealth;
-        double_t battleAttack;
-        double_t battleSpeed;
-        double_t xp;
-        std::list<str> inventory;
-        str charName;
+private:
+    uint8_t health;
+    uint8_t attack;
+    uint8_t speed;
+    uint8_t battleHealth;
+    uint8_t battleAttack;
+    uint8_t battleSpeed;
+    uint8_t level;
+    std::list<str> inventory;
+    str charName;
+public:
+    stats(str newCharName, uint8_t levelOffset) // Initialization of an object
+    {
+        charName = newCharName;               // REMINDER: Do not touch!
+        level = 1 + levelOffset;
+        levelUp(level);
+    }
 
-        template<UnsignedByteOrWord T>
-        double_t xpSigmoidAlgo (T var, double x, double L=100, double k = 2, double x0 = 50)
-        {
-            double_t f_x = L / (1.0 + std::exp(-k * (x - x0)));
-            double_t f_0 = L / (1.0 + std::exp(k * x0));
-            double_t retVal = f_x - f_0;
-            var = retVal;
-            return retVal;
-        };
-    public:
-        stats(str newCharName, double_t x, double_t L=100, double_t k = 2, double_t x0 = 50, double_t startingXP = 10) // Currently undergoing reimplementation
-        {
-            this->charName = newCharName;
-            this->xp = startingXP;
-            for (uint8_t i = 0; i < 3; i++)
-            {
-                switch(i)
-                {
-                    case 0:
-                        this->battleHealth = this->xpSigmoidAlgo(this->health, this->xp);
-                        break;
-                    case 1:
-                        this->battleAttack = this->xpSigmoidAlgo(this->attack, this->xp);
-                        break;
-                    case 2:
-                        this->battleSpeed = this->xpSigmoidAlgo(this->speed, this->xp);
-                        break;
-                }
-            }
-        }
+    int updateAndGetHealth(int8_t change)
+    {
+        health += change;
+        return health;
+    }
+    int updateAndGetApeed(int8_t change)
+    {
+        speed += change;
+        return speed;
+    }
+    int updateAndGetAttack(int8_t change)
+    {
+        attack += change;
+        return attack;
+    }
 
-        uint16_t healthGetterSetter(int8_t change)
-        {
-            health += change;
-            return health;
-        }
-        uint16_t speedGetterSetter(int8_t change)
-        {
-            speed += change;
-            return speed;
-        }
-        uint16_t attackGetterSetter(int8_t change)
-        {
-            attack += change;
-            return attack;
-        }
+    int updateAndGetBattleHealth(int8_t change)
+    {
+        battleHealth += change;
+        return battleHealth;
+    }
+    int updateAndGetBattleSpeed(int8_t change)
+    {
+        battleSpeed += change;
+        return battleSpeed;
+    }
+    int updateAndGetBattleAttack(int8_t change)
+    {
+        battleAttack += change;
+        return battleAttack;
+    }
 
-        uint16_t battleHealthGetterSetter(int8_t change)
-        {
-            battleHealth += change;
-            return battleHealth;
-        }
-        uint16_t battleSpeedGetterSetter(int8_t change)
-        {
-            battleSpeed += change;
-            return battleSpeed;
-        }
-        uint16_t battleAttackGetterSetter(int8_t change)
-        {
-            battleAttack += change;
-            return battleAttack;
-        }
-
-        void addXP(uint16_t amntXP)
-        {
-
-        }
+    void levelUp(uint8_t new_lvl)
+    {
+        health = mcStats[new_lvl][1];
+        attack = mcStats[new_lvl][2];
+        speed = mcStats[new_lvl][3];
+        battleHealth = mcStats[new_lvl][1];
+        battleAttack = mcStats[new_lvl][2];
+        battleSpeed = mcStats[new_lvl][3];
+    }
 };
 
 class ncThreadInterface // WARNING: Not fully implemented yet
