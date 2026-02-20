@@ -284,7 +284,7 @@ class ncSession : public threadHandler
 
         bool initializedFlag = false;
 
-        str buffer = "";
+        str buffer = "\0";
 
         std::jthread thisThrdTask;
 
@@ -304,6 +304,8 @@ class ncSession : public threadHandler
         void cursesInit(std::stop_token st)
         {
             if (initializedFlag) std::terminate();
+
+	    buffer.pop_back();
 
             thisThrdId = std::this_thread::get_id(); // Lock down thread functions
             this->initializedFlag = true;
