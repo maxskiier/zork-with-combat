@@ -280,11 +280,11 @@ class ncSession : public threadHandler
         std::mutex thrdInitLock;
 
 
-        uint16_t currentChar;
+        int16_t currentChar;
 
         bool initializedFlag = false;
 
-        str buffer = "\0";
+        str buffer = "n";
 
         std::jthread thisThrdTask;
 
