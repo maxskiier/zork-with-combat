@@ -261,7 +261,7 @@ class ncThreadInterface // WARNING: Not fully implemented yet
             return;
         }
 
-        WINDOW* winGetter() { // Deprecated
+        [[deprecated("ncSession is a friend of ncThreadInterface")]] WINDOW* winGetter() {
             ncThrdIntegrityCheck();
             return currentWindow;
         }
