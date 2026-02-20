@@ -279,12 +279,9 @@ class ncSession : public threadHandler
 
         std::mutex thrdInitLock;
 
-
         int16_t currentChar;
-
         bool initializedFlag = false;
-
-        str buffer = "n";
+        std::vector<int16_t> buffer = static_cast<std::vector<int16_t>>('n');
 
         std::jthread thisThrdTask;
 
@@ -305,7 +302,7 @@ class ncSession : public threadHandler
         {
             if (initializedFlag) std::terminate();
 
-	    buffer.pop_back();
+            buffer.pop_back();
 
             thisThrdId = std::this_thread::get_id(); // Lock down thread functions
             this->initializedFlag = true;
@@ -333,12 +330,12 @@ class ncSession : public threadHandler
                     wprintw(lineRenderer.currentWindow, "%i\n", currentChar);
                     lineRenderer.renderLines(true); // If so, rerender
                     return;
-                } else if (!buffer.empty() && procChar == 0x08 || 0x7F || KEY_BACKSPACE)
+                } else if (!buffer.empty() && procChar == (0x08 or 0x7F or KEY_BACKSPACE))
                     buffer.pop_back();
                 else if ((0x20 > procChar) || (procChar <= 0x7F)) return; else
                 {
                     mvwprintw(lineRenderer.currentWindow, LINES+1, 0, "> %i %i\n", currentChar, procChar);
-                    buffer.append(1, static_cast<char>(procChar));
+                    buffer.push_back(static_cast<char>(procChar));
                     return;
                 }
             };
