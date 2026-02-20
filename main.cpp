@@ -24,6 +24,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <atomic>
 
 /* Copyright 2025-2026 Maxwell Doose */
 
@@ -205,6 +206,7 @@ class ncThreadInterface // WARNING: Not fully implemented yet
             if (initializedWinFlag) std::terminate();
             initializedWinFlag = true;
             currentWindow = newwin(lines, cols, startY , startX);
+            keypad(currentWindow, TRUE);
             return;
         }
         void winRm() {
@@ -277,15 +279,18 @@ class ncSession : public threadHandler
 
         std::mutex thrdInitLock;
 
-        str buffer = "";
-        char16_t currentChar;
+
+        uint16_t currentChar;
 
         bool initializedFlag = false;
+
+        str buffer = "";
 
         std::jthread thisThrdTask;
 
     public:
 
+        ncSession() = default;
         ~ncSession() = default;
 
         void start() {
@@ -301,7 +306,7 @@ class ncSession : public threadHandler
             if (initializedFlag) std::terminate();
 
             thisThrdId = std::this_thread::get_id(); // Lock down thread functions
-            initializedFlag = true;
+            this->initializedFlag = true;
 
             initscr();
             start_color();
@@ -316,8 +321,7 @@ class ncSession : public threadHandler
             mutable {
                 if (!this->initializedFlag) try {
                         throw std::bad_function_call();
-                    } catch(std::bad_function_call e) {
-                        datSave::createFile("errlog.txt", false);
+                    } catch(std::bad_function_call  e) {
                         std::terminate(); // This should NEVER happen
                     }
                 currentChar = wgetch(lineRenderer.currentWindow);
@@ -327,8 +331,11 @@ class ncSession : public threadHandler
                     wprintw(lineRenderer.currentWindow, "%i\n", currentChar);
                     lineRenderer.renderLines(true); // If so, rerender
                     return;
-                } else if ((0x00 <= procChar) || (procChar >= 0x7F)) return;
-                else { wprintw(lineRenderer.currentWindow, "%i %i\n", currentChar, procChar);
+                } else if (!buffer.empty() && procChar == 0x08 || 0x7F || KEY_BACKSPACE)
+                    buffer.pop_back();
+                else if ((0x20 > procChar) || (procChar <= 0x7F)) return; else
+                {
+                    mvwprintw(lineRenderer.currentWindow, LINES+1, 0, "> %i %i\n", currentChar, procChar);
                     buffer.append(1, static_cast<char>(procChar));
                     return;
                 }
@@ -339,12 +346,13 @@ class ncSession : public threadHandler
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 inputBuffer();
             }
+
             endwin();
 
             return;
         }
 
-	char16_t reportCharGetter()
+    uint16_t reportCharGetter()
 	{
 		return currentChar;
 	}
@@ -363,7 +371,7 @@ int main()
     {
         auto tCurse = std::make_unique<ncSession>();
         tCurse->start();
-        while (static_cast<uint16_t>(tCurse->reportCharGetter()) != 0x1B)
+        while (tCurse->reportCharGetter() != 0x1B)
 	    {
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	    }

@@ -2,7 +2,6 @@
 
 #ifndef DATSAVE_HPP
 #define DATSAVE_HPP
-#endif // DATSAVE_HPP
 
 #define SECTION_HEADER_ID
 
@@ -10,7 +9,6 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
-#include <ncurses.h>
 
 /* Copyright 2025-2026 Maxwell Doose */
 
@@ -41,6 +39,9 @@ class datSave
         inline static fsOps::path otherFile;
 
     public:
+
+        datSave() = delete;
+
         static int createFile(const char* fileName = "zkcmt.dat", bool dirBypass = false)
         {
             fsStream::ifstream inFile(fileName);
@@ -119,3 +120,4 @@ class datSave
             return ec;
         }
 };
+#endif // DATSAVE_HPP
