@@ -352,7 +352,7 @@ class ncSession : public threadHandler
             return;
         }
 
-    uint16_t reportCharGetter()
+    int16_t reportCharGetter()
 	{
 		return currentChar;
 	}
