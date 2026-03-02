@@ -172,7 +172,7 @@ public:
     }
 };
 
-class ncThreadInterface // WARNING: Not fully implemented yet
+class ncThreadInterface 
 {
     private:
         std::array<uint8_t,5> menuKeys;
@@ -221,7 +221,7 @@ class ncThreadInterface // WARNING: Not fully implemented yet
             thisThrdId = id;
         }
 
-        void renderLines(bool disableHeightWidthCheck = false)
+        void renderLines(bool renderBuffer=false, bool disableHeightWidthCheck = false)
         {
             ncThrdIntegrityCheck();
             if (wgetch(currentWindow) != KEY_RESIZE && disableHeightWidthCheck == false)
@@ -281,9 +281,11 @@ class ncSession : public threadHandler
 
         int16_t currentChar;
         bool initializedFlag = false;
-        std::vector<int16_t> buffer = static_cast<std::vector<int16_t>>('n');
+        std::vector<int16_t> buffer;
+	/* Linux tty couldn't comprehend std::string's crap,
+	this is currently the only solution */
 
-        std::jthread thisThrdTask;
+        std::jthread thisThrdTask; // MUST be initialized last
 
     public:
 
@@ -302,8 +304,6 @@ class ncSession : public threadHandler
         {
             if (initializedFlag) std::terminate();
 
-            buffer.pop_back();
-
             thisThrdId = std::this_thread::get_id(); // Lock down thread functions
             this->initializedFlag = true;
 
@@ -314,7 +314,7 @@ class ncSession : public threadHandler
             lineRenderer.attachThreadId(std::this_thread::get_id());
             lineRenderer.winInit();
             lineRenderer.enableKeyStrobing();
-            lineRenderer.renderLines(true);
+            lineRenderer.renderLines(true, true);
 
             auto inputBuffer = [this]()
             mutable {
@@ -328,11 +328,11 @@ class ncSession : public threadHandler
                 if (currentChar == KEY_RESIZE) // Compare to constant 410 for SIGRESIZE
                 {
                     wprintw(lineRenderer.currentWindow, "%i\n", currentChar);
-                    lineRenderer.renderLines(true); // If so, rerender
+                    lineRenderer.renderLines(true, true); // If so, rerender
                     return;
                 } else if (!buffer.empty() && procChar == (0x08 or 0x7F or KEY_BACKSPACE))
                     buffer.pop_back();
-                else if ((0x20 > procChar) || (procChar <= 0x7F)) return; else
+                else if ((0x20 > procChar) || (procChar > 0x7F)) return; else
                 {
                     mvwprintw(lineRenderer.currentWindow, LINES+1, 0, "> %i %i\n", currentChar, procChar);
                     buffer.push_back(static_cast<char>(procChar));
